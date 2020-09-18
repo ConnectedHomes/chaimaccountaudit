@@ -6,7 +6,7 @@
     "manage_iam_role": false,
     "iam_role_arn": "arn:aws:iam::499223386158:role/chaim-lambda-rds",
     "environment_variables": {
-        "DDB_TABLE": "sreReportingSecurityGroups"
+        "SECRETPATH": "/sre/chaim/"
     },
     "stages": {
         "dev": {
