@@ -1,1 +1,2 @@
-__version__ = '0.1.0'
+"""Python chaimaccountaudit package."""
+__version__ = "0.1.1"
