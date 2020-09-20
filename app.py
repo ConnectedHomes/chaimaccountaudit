@@ -1,5 +1,6 @@
 """Chaim Account Audit Slack application."""
 
+from operator import itemgetter
 import os
 
 import boto3
@@ -184,9 +185,21 @@ def getAccountUsers(account, pms):
             # Ensure the basic roles are the last in the sorted list of user roles
             rdict["rid"] = row[rid] * 100 if row[rid] < 101 else row[rid]
             op[row[uname]].append(rdict)
-        return op
+        return sortData(op)
     except Exception as e:
         msg = f"Exception in getAccountUsers: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
+def sortData(rows):
+    try:
+        op = {}
+        for name in rows:
+            op[name] = sorted(rows[name], key=itemgetter("rid"))
+        return op
+    except Exception as e:
+        msg = f"Exception in sortData: {type(e).__name__}: {e}"
         print(msg)
         raise
 
