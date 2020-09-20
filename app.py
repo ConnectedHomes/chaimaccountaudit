@@ -35,7 +35,7 @@ def splitQS(req):
         # ensure the query string is unquoted
         qs = unquote(req)
         # split at the ampersand, returns a 1 element list if there is no &
-        bits = req.split("&")
+        bits = qs.split("&")
         for bit in bits:
             # split into key/value
             k, v = bit.split("=")
