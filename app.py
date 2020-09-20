@@ -163,12 +163,22 @@ def getAccountUsers(account, pms):
         and r.id=x.roleid
         order by u.name,r.id;
         """
+        aid = 0
+        aname = 1
+        uname = 2
+        rname = 3
+        rid = 4
+        fields = ["aid", "aname", "uname", "rname", "rid"]
         rows = pms.sid.query(sql)
+        print(rows)
         op = {}
         for row in rows:
-            if row["uname"] not in op:
-                op[row["uname"]] = []
-            op[row["uname"]].append(row)
+            if row[uname] not in op:
+                op[row[uname]] = []
+            rdict = {}
+            for cn, field in enumerate(fields):
+                rdict[field] = row[cn]
+            op[row[uname]].append(rdict)
         return op
 
         # cuser = None
@@ -206,7 +216,8 @@ def doSNSReq(event):
             msg = f"""Account {bodydict["text"]} not found."""
             sendToSlack(bodydict["response_url"], msg)
             raise AccountNotFound(msg)
-        getAccountUsers(bodydict["text"], pms)
+        users = getAccountUsers(bodydict["text"], pms)
+        print(users)
     except Exception as e:
         msg = f"Exception in doSNSReq: {type(e).__name__}: {e}"
         print(msg)
