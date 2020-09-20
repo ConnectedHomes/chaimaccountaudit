@@ -25,6 +25,10 @@ class AccountNotFound(Exception):
     pass
 
 
+class NoData(Exception):
+    pass
+
+
 app = Chalice(app_name="chaimaccountaudit")
 
 
@@ -175,27 +179,12 @@ def getAccountUsers(account, pms):
         for row in rows:
             if row[uname] not in op:
                 op[row[uname]] = []
-            rdict = {}
-            for cn, field in enumerate(fields):
-                rdict[field] = row[cn]
+            # remove CrossAccount from the role name
+            rdict = {"rname": row[rname].replace("CrossAccount", "")}
+            # Ensure the basic roles are the last in the sorted list of user roles
+            rdict["rid"] = row[rid] * 100 if row[rid] < 101 else row[rid]
             op[row[uname]].append(rdict)
         return op
-
-        # cuser = None
-        # crole = ""
-        # for row in rows:
-        #     if cuser is None:
-        #         cuser = row["uname"]
-        #         crid = 0
-        #     rid = int(row["rid"])
-        #     if rid < 101:
-        #         rid = rid * 100
-        #     if cuser == row["uname"]:
-        #         if crid < rid:
-        #             crid = rid
-        #             crole = row["rname"]
-        #     else:
-        #         op[row["uname"]] = crole.replace("CrossAccount", "")
     except Exception as e:
         msg = f"Exception in getAccountUsers: {type(e).__name__}: {e}"
         print(msg)
