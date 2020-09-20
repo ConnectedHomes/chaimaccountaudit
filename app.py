@@ -21,6 +21,10 @@ class EnvFail(Exception):
     pass
 
 
+class AccountNotFound(Exception):
+    pass
+
+
 app = Chalice(app_name="chaimaccountaudit")
 
 
@@ -67,13 +71,26 @@ def publishToSNS(topicarn, snsmsg):
         raise
 
 
-@app.lambda_function
-def doSNSReq():
+def sendToSlack(respondurl, msg):
+    """
+    Send messages back to Slack
+
+    :param respondurl: the url to send back to
+    :param msg: the text to send
+    """
     try:
-        pass
+        if respondurl != "ignoreme":
+            if len(msg) > 0:
+                params = json.dumps(output(None, msg))
+                r = requests.post(respondurl, data=params)
+                if 200 != r.status_code:
+                    emsg = "Failed to send back to initiating Slack channel"
+                    emsg += ". status: {}, text: {}".format(r.status_code, r.text)
+                    raise (SlackSendFail(emsg))
     except Exception as e:
-        msg = f"Exception in doSNSReq: {type(e).__name__}: {e}"
+        msg = f"Send to Slack Failed: {e}"
         print(msg)
+        raise
 
 
 def output(err, res=None, attachments=None):
@@ -108,6 +125,91 @@ def makeAttachments(attachments, pretext=None):
         msg = f"Exception in makeAttachments: {type(e).__name__}: {e}"
         print(msg)
         raise
+
+
+def listGroupMembers(group, pms):
+    try:
+        sql = f"""
+        select u.name as name
+        from
+        groupusermap g, awsusers u, awsgroups f
+        where
+        u.id=g.userid
+        and g.groupid=f.id
+        and f.name='{group}';
+        """
+        rows = pms.sid.query(sql)
+        op = []
+        for row in rows:
+            op.append(row["name"])
+        return op
+    except Exception as e:
+        msg = f"Exception in listGroupMembers: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
+def getAccountUsers(account, pms):
+    try:
+        sql = f"""
+        select
+        a.id as aid, a.name as aname, u.name as uname, r.name as rname, r.id as rid
+        from
+        useracctrolemap x, awsusers u, awsaccounts a, awsroles r
+        where
+        a.name='{account}'
+        and u.id=x.userid
+        and a.id=x.accountid
+        and r.id=x.roleid
+        order by u.name,r.id;
+        """
+        rows = pms.sid.query(sql)
+        op = {}
+        for row in rows:
+            if row["uname"] not in op:
+                op[row["uname"]] = []
+            op[row["uname"]].append(row)
+        return op
+
+        # cuser = None
+        # crole = ""
+        # for row in rows:
+        #     if cuser is None:
+        #         cuser = row["uname"]
+        #         crid = 0
+        #     rid = int(row["rid"])
+        #     if rid < 101:
+        #         rid = rid * 100
+        #     if cuser == row["uname"]:
+        #         if crid < rid:
+        #             crid = rid
+        #             crole = row["rname"]
+        #     else:
+        #         op[row["uname"]] = crole.replace("CrossAccount", "")
+    except Exception as e:
+        msg = f"Exception in getAccountUsers: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
+@app.on_sns_message(topic="chaimaccountaudit")
+def doSNSReq(event):
+    try:
+        bodydict = splitQS(event.message)
+        print(f"chaimaccountaudit rcvd: {bodydict}")
+        spath = getEnvParam("SECRETPATH")
+        pms = Permissions(spath)
+        accountid = pms.singleField(
+            "awsaccounts", "id", "name", "Name", bodydict["text"], notfoundOK=True
+        )
+        if accountid is None:
+            msg = f"""Account {bodydict["text"]} not found."""
+            sendToSlack(bodydict["response_url"], msg)
+            raise AccountNotFound(msg)
+        getAccountUsers(bodydict["text"], pms)
+    except Exception as e:
+        msg = f"Exception in doSNSReq: {type(e).__name__}: {e}"
+        print(msg)
 
 
 @app.route("/", methods=["POST"], content_types=["application/x-www-form-urlencoded"])

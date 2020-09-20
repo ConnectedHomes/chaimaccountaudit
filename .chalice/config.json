@@ -6,21 +6,28 @@
     "manage_iam_role": false,
     "iam_role_arn": "arn:aws:iam::499223386158:role/chaim-lambda-rds",
     "environment_variables": {
-        "SECRETPATH": "/sre/chaim/"
+        "SECRETPATH": "/sre/chaim/",
+        "SNSTOPICARN": "arn:aws:sns:eu-west-1:499223386158:chaimaccountaudit"
     },
+    "tags": {
+        "Name": "chaimaccountaudit",
+        "product": "chaim",
+        "Owner": "SRE",
+        "role": "chaimaccountaudit-lambda"
+    },
+    "subnet_ids": ["subnet-c74d4ca0", "subnet-026b2959"],
+    "security_group_ids": ["sg-dfb2eda4"],
     "stages": {
         "dev": {
             "api_gateway_stage": "dev",
-            "environment_variables": {
-                "SNSTOPICARN": "arn:aws:sns:eu-west-1:168686814235:iamtool-snsreq",
-                "WEBHOOK": "/sre/sgtool/dev/webhook"
+            "tags": {
+                "environment": "dev"
             }
         },
         "prod": {
             "api_gateway_stage": "prod",
-            "environment_variables": {
-                "SNSTOPICARN": "arn:aws:sns:eu-west-1:168686814235:iamtool-snsreq-prod",
-                "WEBHOOK": "/sre/sgtool/prod/webhook"
+            "tags": {
+                "environment": "dev"
             }
         }
     }
