@@ -149,7 +149,7 @@ def chaimLastUsed(username, pms):
         lastused = pms.sid.query(sql)[0][0]
         now = int(time.time())
         xlen = now - lastused
-        days = xlen / 86400
+        days = int(xlen / 86400)
         return days
     except Exception as e:
         msg = f"Exception in chaimLastUsed: {type(e).__name__}: {e}"
@@ -237,7 +237,7 @@ def padLine(line, length=4):
         raise
 
 
-def userPermRow(row, username):
+def userPermRow(row, username, days):
     """Turns a user row into a display list for tabulate."""
     try:
         extras = []
@@ -248,7 +248,7 @@ def userPermRow(row, username):
                 extras.append(role["rname"])
             else:
                 line.append(role["rname"])
-        msg = f"{username}"
+        msg = f"{username} ({days})"
         if len(line) > 0:
             msg += "\n"
             msg += tabulate([padLine(line)], tablefmt="plain")
@@ -280,9 +280,9 @@ def displayPermissions(users, groups, pms):
                     sep = ""
                 else:
                     sep = "\n\n"
-                ustr = userPermRow(users[user], user)
                 days = chaimLastUsed(user, pms)
-                op += f"{sep}{ustr} ({days})"
+                ustr = userPermRow(users[user], user, days)
+                op += f"{sep}{ustr}"
         op += "\n\nSRE\nReadOnly  PowerUser  SysAdmin  AdminUser"
         op += "\n----------------------------------------"
         op += "\n\nSecurity\nReadOnly"
@@ -313,7 +313,7 @@ def doSNSReq(event):
         security = listGroupMembers("security", pms)
         msg = displayPermissions(users, (sre, security), pms)
         title = f"""Permissions for account: {bodydict["text"]}"""
-        title += "The number in brackets is the number of days since the"
+        title += "\nThe number in brackets is the number of days since the"
         title += " user last used chaim."
         title += "\n(not necessarily last used chaim for this account)."
         sendToSlack(bodydict["response_url"], f"{title}\n```{msg}```")
