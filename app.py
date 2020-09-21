@@ -312,11 +312,11 @@ def doSNSReq(event):
         sre = listGroupMembers("SRE", pms)
         security = listGroupMembers("security", pms)
         msg = displayPermissions(users, (sre, security), pms)
-        title = f"""Permissions for account: {bodydict["text"]}"""
-        title += "\nThe number in brackets is the number of days since the"
+        title = f"""Permissions for account: *{bodydict["text"]}*"""
+        title += "\n\nThe number in brackets is the number of days since the"
         title += " user last used chaim."
         title += "\n(not necessarily last used chaim for this account)."
-        sendToSlack(bodydict["response_url"], f"{title}\n```{msg}```")
+        sendToSlack(bodydict["response_url"], f"{title}\n\n```{msg}```")
         print(msg)
         # print(sre)
         # print(security)
