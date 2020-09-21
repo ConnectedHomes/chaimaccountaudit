@@ -202,6 +202,65 @@ def sortData(rows):
         raise
 
 
+def padLine(line, length=4):
+    try:
+        while len(line) < length:
+            line.append("")
+        return line
+    except Exception as e:
+        msg = f"Exception in padLine: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
+def userPermRow(row, username):
+    """Turns a user row into a display list for tabulate."""
+    try:
+        extras = []
+        line = []
+        for role in row:
+            if role["rid"] < 1000:
+                extras.append(row["rname"])
+            else:
+                line.append(row["name"])
+        msg = f"{username}"
+        msg += "\n"
+        msg += tabulate(padLine(line))
+        for extra in extras:
+            msg += f"\n{extra}"
+        return msg
+    except Exception as e:
+        msg = f"Exception in userPermRow: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
+def displayPermissions(users, groups):
+    try:
+        op = ""
+        first = True
+        for user in users:
+            skip = False
+            for group in group:
+                if user in group:
+                    skip = True
+            if skip:
+                continue
+            else:
+                if first:
+                    first = False
+                    sep = ""
+                else:
+                    sep = "\n\n"
+                ustr = userPermRow(users[user], user)
+                op += f"{sep}{ustr}"
+        return op
+    except Exception as e:
+        msg = f"Exception in displayPermissions: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
 @app.on_sns_message(topic="chaimaccountaudit")
 def doSNSReq(event):
     try:
@@ -219,8 +278,11 @@ def doSNSReq(event):
         users = getAccountUsers(bodydict["text"], pms)
         sre = listGroupMembers("SRE", pms)
         security = listGroupMembers("security", pms)
-        print(sre)
-        print(security)
+        msg = displayPermissions(users, (sre, security))
+        sendToSlack(bodydict["response_url"], msg)
+        print(msg)
+        # print(sre)
+        # print(security)
         # print(users)
     except Exception as e:
         msg = f"Exception in doSNSReq: {type(e).__name__}: {e}"
