@@ -143,11 +143,9 @@ def listGroupMembers(group, pms):
         and g.groupid=f.id
         and f.name='{group}';
         """
+        name = 0
         rows = pms.sid.query(sql)
-        op = []
-        for row in rows:
-            op.append(row["name"])
-        return op
+        return [row[name] for row in rows]
     except Exception as e:
         msg = f"Exception in listGroupMembers: {type(e).__name__}: {e}"
         print(msg)
@@ -175,7 +173,6 @@ def getAccountUsers(account, pms):
         rid = 4
         fields = ["aid", "aname", "uname", "rname", "rid"]
         rows = pms.sid.query(sql)
-        print(rows)
         op = {}
         for row in rows:
             if row[uname] not in op:
