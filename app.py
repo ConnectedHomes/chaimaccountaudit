@@ -241,7 +241,7 @@ def displayPermissions(users, groups):
         first = True
         for user in users:
             skip = False
-            for group in group:
+            for group in groups:
                 if user in group:
                     skip = True
             if skip:
