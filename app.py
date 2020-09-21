@@ -146,7 +146,7 @@ def chaimLastUsed(username, pms):
         where
         name='{username}';
         """
-        lastused = pms.query(sql)[0][0]
+        lastused = pms.sid.query(sql)[0][0]
         now = int(time.time())
         xlen = now - lastused
         days = xlen / 86400
