@@ -147,9 +147,12 @@ def chaimLastUsed(username, pms):
         name='{username}';
         """
         lastused = pms.sid.query(sql)[0][0]
-        now = int(time.time())
-        xlen = now - lastused
-        days = int(xlen / 86400)
+        if lastused == 0:
+            days = "Has never used chaim"
+        else:
+            now = int(time.time())
+            xlen = now - lastused
+            days = int(xlen / 86400)
         return days
     except Exception as e:
         msg = f"Exception in chaimLastUsed: {type(e).__name__}: {e}"
@@ -316,8 +319,9 @@ def doSNSReq(event):
         title += "\n\nThe number in brackets is the number of days since the"
         title += " user last used chaim."
         title += "\n(not necessarily last used chaim for this account)."
-        sendToSlack(bodydict["response_url"], f"{title}\n\n```{msg}```")
-        print(msg)
+        op = f"{title}\n\n```{msg}```"
+        sendToSlack(bodydict["response_url"], op)
+        # print(msg)
         # print(sre)
         # print(security)
         # print(users)
