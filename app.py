@@ -1,10 +1,13 @@
 """Chaim Account Audit Slack application."""
 
+import json
 from operator import itemgetter
 import os
+import time
 
 import boto3
 from chalice import Chalice
+import requests
 from tabulate import tabulate
 from urllib.parse import unquote
 
@@ -133,6 +136,27 @@ def makeAttachments(attachments, pretext=None):
         raise
 
 
+def chaimLastUsed(username, pms):
+    """returns the number of days since the user last used chaim."""
+    try:
+        sql = f"""
+        select lastslack
+        from
+        awsusers
+        where
+        name='{username}';
+        """
+        lastused = pms.query(sql)[0][0]
+        now = int(time.time())
+        xlen = now - lastused
+        days = xlen / 86400
+        return days
+    except Exception as e:
+        msg = f"Exception in chaimLastUsed: {type(e).__name__}: {e}"
+        print(msg)
+        raise
+
+
 def listGroupMembers(group, pms):
     try:
         sql = f"""
@@ -219,15 +243,19 @@ def userPermRow(row, username):
         extras = []
         line = []
         for role in row:
+            # print(role)
             if role["rid"] < 1000:
-                extras.append(row["rname"])
+                extras.append(role["rname"])
             else:
-                line.append(row["name"])
+                line.append(role["rname"])
         msg = f"{username}"
-        msg += "\n"
-        msg += tabulate(padLine(line))
-        for extra in extras:
-            msg += f"\n{extra}"
+        if len(line) > 0:
+            msg += "\n"
+            msg += tabulate([padLine(line)], tablefmt="plain")
+        if len(extras) > 0:
+            for extra in extras:
+                msg += f"\n{extra}"
+        msg += "\n----------------------------------------"
         return msg
     except Exception as e:
         msg = f"Exception in userPermRow: {type(e).__name__}: {e}"
@@ -235,7 +263,7 @@ def userPermRow(row, username):
         raise
 
 
-def displayPermissions(users, groups):
+def displayPermissions(users, groups, pms):
     try:
         op = ""
         first = True
@@ -253,7 +281,12 @@ def displayPermissions(users, groups):
                 else:
                     sep = "\n\n"
                 ustr = userPermRow(users[user], user)
-                op += f"{sep}{ustr}"
+                days = chaimLastUsed(user, pms)
+                op += f"{sep}{ustr} ({days})"
+        op += "\n\nSRE\nReadOnly  PowerUser  SysAdmin  AdminUser"
+        op += "\n----------------------------------------"
+        op += "\n\nSecurity\nReadOnly"
+        op += "\n----------------------------------------"
         return op
     except Exception as e:
         msg = f"Exception in displayPermissions: {type(e).__name__}: {e}"
@@ -278,8 +311,12 @@ def doSNSReq(event):
         users = getAccountUsers(bodydict["text"], pms)
         sre = listGroupMembers("SRE", pms)
         security = listGroupMembers("security", pms)
-        msg = displayPermissions(users, (sre, security))
-        sendToSlack(bodydict["response_url"], msg)
+        msg = displayPermissions(users, (sre, security), pms)
+        title = f"""Permissions for account: {bodydict["text"]}"""
+        title += "The number in brackets is the number of days since the"
+        title += " user last used chaim."
+        title += "\n(not necessarily last used chaim for this account)."
+        sendToSlack(bodydict["response_url"], f"{title}\n```{msg}```")
         print(msg)
         # print(sre)
         # print(security)
