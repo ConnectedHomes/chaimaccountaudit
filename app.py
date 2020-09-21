@@ -5,6 +5,7 @@ import os
 
 import boto3
 from chalice import Chalice
+from tabulate import tabulate
 from urllib.parse import unquote
 
 from chalicelib.permissions import Permissions
@@ -216,7 +217,11 @@ def doSNSReq(event):
             sendToSlack(bodydict["response_url"], msg)
             raise AccountNotFound(msg)
         users = getAccountUsers(bodydict["text"], pms)
-        print(users)
+        sre = listGroupMembers("SRE", pms)
+        security = listGroupMembers("security", pms)
+        print(sre)
+        print(security)
+        # print(users)
     except Exception as e:
         msg = f"Exception in doSNSReq: {type(e).__name__}: {e}"
         print(msg)
